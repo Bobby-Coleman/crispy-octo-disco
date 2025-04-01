@@ -14,17 +14,14 @@ class Demon {
         this.animations = {}; // To store AnimationActions
 
         this.speed = 2.0; // Normal walk speed
-        this.chargeSpeed = 6.0; // Fast charge speed (Adjust from 0.8 units/frame)
 
         this.initialPosition = initialPos.clone();
-        this.currentTargetPosition = null; // For charge attack destination
 
         // AI State Machine
-        this.state = 'IDLE'; // IDLE, WALKING, CHARGING, ATTACKING_FIREBALL, ATTACKING_SPAWN, HIT, DYING
+        this.state = 'IDLE'; // IDLE, WALKING, ATTACKING_FIREBALL, ATTACKING_SPAWN, ATTACKING_OMNI, HIT, DYING
         this.attackCooldown = 2.0; // Time between deciding attacks (approx)
         this.attackTimer = Math.random() * this.attackCooldown; // Start with random delay
-        this.chargeWaitTimer = 0; // Timer for waiting between charges
-        this.isTurning = false; // Flag when turning after charge
+        this.lastActionTime = Date.now(); // Track last action time
 
         this.loadModel();
         this.updateHealthUI();
@@ -43,7 +40,12 @@ class Demon {
                 
                 // Add collision box
                 const boxGeometry = new THREE.BoxGeometry(4, 5, 4); // Much larger collision box
-                const boxMaterial = new THREE.MeshBasicMaterial({ visible: false });
+                const boxMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xff0000,
+                    transparent: true,
+                    opacity: 0.3,
+                    visible: true // Make it visible
+                });
                 this.collisionBox = new THREE.Mesh(boxGeometry, boxMaterial);
                 this.model.add(this.collisionBox);
                 
@@ -63,6 +65,7 @@ class Demon {
                 // Map specified animation names
                 const animNameMap = {
                     walk: 'Walk_F_RM',
+                    walkBack: 'Walk_B_IP',
                     charge: 'Run_Attack_RM',
                     fireball: 'Attack_1',
                     hit: 'Hit_F',
@@ -167,8 +170,8 @@ class Demon {
             this.health = 0;
             this.die();
         } else {
-            // Play hit animation only if not already doing a major action like charging/dying
-            if (this.state !== 'CHARGING' && this.state !== 'HIT' && this.state !== 'ATTACKING_FIREBALL') {
+            // Play hit animation only if not already doing a major action
+            if (this.state !== 'HIT' && this.state !== 'ATTACKING_FIREBALL') {
                  this.state = 'HIT';
                  this.playAnimation('hit');
                  // The animation finish handler will return to WALKING
@@ -216,96 +219,38 @@ class Demon {
 
     // --- Attack Implementations ---
 
-    startCharge() {
-         if (this.state === 'CHARGING' || this.state === 'DYING' || this.isTurning) return;
-        this.state = 'CHARGING';
-        this.currentTargetPosition = this.player.getPosition().clone(); // Target player's current position
-         // Keep target on the ground plane
-         this.currentTargetPosition.y = this.model.position.y;
-         this.playAnimation('charge');
-         console.log("Demon starting charge towards:", this.currentTargetPosition);
-    }
-
-    performCharge(deltaTime) {
-        if (!this.currentTargetPosition || !this.model) return;
-
-        const direction = this.currentTargetPosition.clone().sub(this.model.position);
-        const distance = direction.length();
-
-        // Check if close enough to target or player
-        const playerPos = this.player.getPosition();
-        const distanceToPlayer = this.model.position.distanceTo(playerPos);
-
-        // Collision/Stopping Condition
-        const stopDistance = 1.5; // How close to get before stopping charge
-        if (distance < stopDistance || distanceToPlayer < stopDistance) {
-            console.log("Demon reached charge destination or player.");
-
-            // Deal damage if close to player on charge end
-            if (distanceToPlayer < stopDistance + 1.5) { // Increased damage radius to 3.0 units total
-                this.player.takeDamage(25); // Increased charge damage to 25
-                console.log("Charge hit player!");
-            }
-
-            // Stop charging, turn to face player, wait, then charge again
-            this.state = 'IDLE'; // Temporarily idle while waiting
-            this.playAnimation('walk'); // Or an idle animation if available
-            this.isTurning = true; // Start turning process
-            this.chargeWaitTimer = 1 + Math.random() * 2; // Reduced wait time to 1-3 seconds
-            this.currentTargetPosition = null; // Clear target
-            return;
-        }
-
-        // Move towards target
-        direction.normalize();
-        this.model.position.add(direction.multiplyScalar(this.chargeSpeed * deltaTime));
-
-        // Make the demon look towards the direction it's moving during charge
-        const lookAtPos = this.model.position.clone().add(direction);
-        lookAtPos.y = this.model.position.y;
-        this.model.lookAt(lookAtPos);
-    }
-
-    performTurn(deltaTime) {
-        if (!this.model || !this.player) return;
-
-        const playerPos = this.player.getPosition();
-        const targetPos = playerPos.clone();
-        targetPos.y = this.model.position.y; // Look at player on the same horizontal plane
-
-        const currentQuaternion = this.model.quaternion.clone();
-        // Calculate target rotation
-         const tempMatrix = new THREE.Matrix4();
-         tempMatrix.lookAt(targetPos, this.model.position, this.model.up);
-         const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(tempMatrix);
-
-         // Smoothly interpolate rotation
-         const turnSpeed = 2.0; // Radians per second
-         this.model.quaternion.slerp(targetQuaternion, turnSpeed * deltaTime);
-
-         // Check if facing player (angle difference is small)
-         const angleDiff = currentQuaternion.angleTo(targetQuaternion);
-         if (angleDiff < 0.1) { // Threshold for facing player
-             this.isTurning = false;
-             console.log("Demon finished turning, starting wait timer.");
-         }
-    }
-
     spawnFire() {
-         if (this.state === 'DYING') return;
-        console.log("Demon spawning fire");
+        if (this.state === 'DYING') return;
+        console.log("Demon spawning fire across the map");
         this.state = 'ATTACKING_SPAWN';
         Utils.playSound('roar');
-        // Play roar sound
-        // Spawn hazard at player's current position
-        const playerPos = this.player.getPosition();
-        this.environment.createFireHazard(playerPos);
-        // No specific animation tied in spec, maybe just walk or a short hit anim?
-        // We can reuse 'hit' or just let it stay in 'walk'
-        // If using a one-shot anim like 'hit', need to handle state change on finish
-        // For simplicity, let's just keep walking/idle after spawning
-         this.state = 'WALKING'; // Immediately return to walking state
-         this.playAnimation('walk');
+        
+        // Create multiple random fire hazards across the map (20% coverage)
+        const mapWidth = 40; // Approximate map width
+        const mapDepth = 40; // Approximate map depth
+        const fireRadius = 2.5; // Size of each fire hazard
+        const fireArea = Math.PI * fireRadius * fireRadius;
+        const totalMapArea = mapWidth * mapDepth;
+        
+        // Calculate how many fires to create to cover ~20% of the map
+        const targetCoverage = 0.2; // 20% coverage
+        const targetArea = totalMapArea * targetCoverage;
+        const numFires = Math.floor(targetArea / fireArea);
+        
+        console.log(`Creating ${numFires} fires to cover ~20% of the map`);
+        
+        for (let i = 0; i < numFires; i++) {
+            // Generate random position within map bounds
+            const x = (Math.random() * mapWidth) - (mapWidth / 2); // Center map at origin
+            const z = (Math.random() * mapDepth) - (mapDepth / 2);
+            const position = new THREE.Vector3(x, 0, z);
+            
+            // Create fire hazard with 10 damage
+            this.environment.createFireHazard(position, fireRadius, 10);
+        }
+        
+        this.state = 'WALKING'; // Return to walking state
+        this.playAnimation('walk');
     }
 
     shootFireball() {
@@ -342,6 +287,31 @@ class Demon {
         this.environment.createDemonBullet(startPos.clone(), rightDir);
     }
 
+    shootOmniBullets() {
+        if (this.state === 'DYING') return;
+        console.log("Demon shooting omnidirectional bullets");
+        this.state = 'ATTACKING_OMNI';
+        Utils.playSound('fireball');
+
+        this.playAnimation('fireball');
+
+        // Adjust start position to be at a good shooting height
+        const startPos = this.model.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+        
+        // Create bullets in all directions
+        const numBullets = 8; // 8 directions
+        const angleStep = (Math.PI * 2) / numBullets;
+        
+        for (let i = 0; i < numBullets; i++) {
+            const angle = i * angleStep;
+            const direction = new THREE.Vector3(
+                Math.sin(angle), 
+                0,
+                Math.cos(angle)
+            );
+            this.environment.createDemonBullet(startPos.clone(), direction);
+        }
+    }
 
     // --- Main Update Logic ---
     update(deltaTime) {
@@ -370,7 +340,7 @@ class Demon {
             }
         }
 
-        // Check collision with player and push them back
+        // Check collision with player and push them back strongly
         if (this.collisionBox && this.player) {
             const playerPos = this.player.getPosition();
             const demonPos = this.model.position;
@@ -378,112 +348,64 @@ class Demon {
             const dz = playerPos.z - demonPos.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
-            if (distance < 3.5) { // Much larger collision radius
+            if (distance < 5.0) { // Much larger collision radius
                 // Calculate push direction and strength
                 const pushDir = new THREE.Vector3(dx, 0, dz).normalize();
-                const pushStrength = 1.0; // Much stronger push
+                const pushStrength = 3.0; // Much stronger push
                 
                 // Push player away from demon
                 this.player.camera.position.add(pushDir.multiplyScalar(pushStrength));
-                
-                // If this is during a charge attack, apply damage
-                if (this.state === 'CHARGING') {
-                    this.player.takeDamage(25);
-                    console.log("Charge hit player!");
-                }
             }
         }
 
-         // State-based behavior
-         switch (this.state) {
+        // State-based behavior
+        switch (this.state) {
             case 'IDLE':
-                 // If finished turning, wait for timer
-                 if (!this.isTurning && this.chargeWaitTimer > 0) {
-                    this.chargeWaitTimer -= deltaTime;
-                     if (this.chargeWaitTimer <= 0) {
-                         this.startCharge(); // Start next charge
-                    }
-                     // While waiting, look at player
-                     this.lookAtPlayer();
-                 } else if (this.isTurning) {
-                     this.performTurn(deltaTime); // Continue turning
-                 } else {
-                     // Normal idle behavior (decide next attack)
-                     this.decideNextAction(deltaTime);
-                     this.lookAtPlayer(); // Look at player while idle/walking
-                 }
-                break;
             case 'WALKING':
-                 // Could add simple wandering logic here if desired
-                 // For now, just acts like IDLE for attack decisions
-                this.decideNextAction(deltaTime);
-                 this.lookAtPlayer();
+                // Decide next action and look at player
+                this.decideNextAction();
+                this.lookAtPlayer();
                 break;
-            case 'CHARGING':
-                this.performCharge(deltaTime);
-                // Collision with player during charge is handled inside performCharge
+            case 'ATTACKING_FIREBALL':
+            case 'ATTACKING_OMNI':
+            case 'ATTACKING_SPAWN':
+            case 'HIT':
+                // Actions handled by animation completion or initial trigger
+                // Ensure demon still looks at player during these short actions
+                this.lookAtPlayer();
                 break;
-             case 'ATTACKING_FIREBALL':
-             case 'ATTACKING_SPAWN':
-             case 'HIT':
-                 // Actions handled by animation completion or initial trigger
-                 // Ensure demon still looks at player during these short actions
-                 this.lookAtPlayer();
-                 break;
         }
     }
 
-     decideNextAction(deltaTime) {
-         this.attackTimer -= deltaTime;
-         if (this.attackTimer <= 0 && !this.isTurning) {
-            // Get distance to player to make decisions
-            const playerPos = this.player.getPosition();
-            const distanceToPlayer = this.model.position.distanceTo(playerPos);
-            
-            // Different attack patterns based on distance
-            if (distanceToPlayer < 5) {
-                // Close range: Prefer charging
-                const rand = Math.random();
-                if (rand < 0.7) { // 70% chance to charge when close
-                    if (this.chargeWaitTimer <= 0) {
-                        this.startCharge();
-                    } else {
-                        this.shootFireball(); // Fallback to fireball if can't charge
-                    }
-                } else {
-                    this.spawnFire(); // 30% chance to spawn fire when close
-                }
-            } else if (distanceToPlayer < 15) {
-                // Medium range: Mix of all attacks
-                const rand = Math.random();
-                if (rand < 0.4) { // 40% chance to shoot fireball
-                    this.shootFireball();
-                } else if (rand < 0.7) { // 30% chance to charge
-                    if (this.chargeWaitTimer <= 0) {
-                        this.startCharge();
-                    }
-                } else { // 30% chance to spawn fire
-                    this.spawnFire();
-                }
-            } else {
-                // Long range: Prefer ranged attacks
-                const rand = Math.random();
-                if (rand < 0.7) { // 70% chance to shoot fireball
-                    this.shootFireball();
-                } else { // 30% chance to spawn fire
-                    this.spawnFire();
-                }
-            }
-            
-            // Reset timer after choosing an action (charge handles its own timing)
-            if (this.state !== 'CHARGING') {
-                this.attackTimer = this.attackCooldown * (0.8 + Math.random() * 0.4); // Reset with slight randomness
-            }
-         }
-     }
+    decideNextAction() {
+        if (this.state === 'DYING') return;
+        
+        // Reset state to IDLE before deciding new action
+        this.state = 'IDLE';
+        
+        // Add a minimum delay between actions
+        const now = Date.now();
+        if (now - this.lastActionTime < 1000) return; // At least 1 second between actions
+        
+        // Randomly choose between the three attacks
+        const attackChoice = Math.random();
+        
+        if (attackChoice < 0.33) {
+            console.log("Demon deciding to spawn fire");
+            this.spawnFire();
+        } else if (attackChoice < 0.67) {
+            console.log("Demon deciding to shoot fireballs");
+            this.shootFireball();
+        } else {
+            console.log("Demon deciding to shoot omni bullets");
+            this.shootOmniBullets();
+        }
+        
+        this.lastActionTime = now;
+    }
 
     lookAtPlayer() {
-        if (this.model && this.player && this.state !== 'CHARGING' && !this.isTurning) { // Don't override charge lookAt or turning logic
+        if (this.model && this.player) {
             const playerPos = this.player.getPosition();
             const targetPos = playerPos.clone();
             targetPos.y = this.model.position.y; // Look at player on the same horizontal plane
@@ -493,5 +415,11 @@ class Demon {
 
     getPosition() {
         return this.model ? this.model.position : new THREE.Vector3();
+    }
+
+    getDistanceToPlayer() {
+        const playerPos = this.player.getPosition();
+        const demonPos = this.model.position;
+        return demonPos.distanceTo(playerPos);
     }
 }

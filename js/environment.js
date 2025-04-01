@@ -9,7 +9,7 @@ class Environment {
 
         this.bulletSpeed = 15; // units per second
         this.bulletLifetime = 3; // seconds
-        this.fireHazardLifetime = 3; // seconds
+        this.fireHazardLifetime = 10; // Increased from 3 to 10 seconds
         this.fireHazardDamage = 10;
 
         this.setupDungeon();
@@ -109,18 +109,40 @@ class Environment {
         this.demonBullets.push(bullet);
     }
 
-    createFireHazard(position) {
-        const geometry = new THREE.BoxGeometry(1, 0.5, 1); // Orange box
-        const material = new THREE.MeshStandardMaterial({ color: 0xffa500 }); // Orange
+    createFireHazard(position, size = 1.0, damage = 10) {
+        // Size parameter controls the width/depth of the fire hazard
+        const geometry = new THREE.BoxGeometry(size, 1.0, size); // Increased height for better visibility
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0xff4500, // Brighter orange/red
+            emissive: 0xff2000,
+            emissiveIntensity: 1.0, // Increased intensity
+            transparent: true,
+            opacity: 0.8 // Increased opacity
+        });
+        
         const hazard = {
              mesh: new THREE.Mesh(geometry, material),
              lifetime: this.fireHazardLifetime,
-             damage: this.fireHazardDamage,
-             isFireHazard: true
+             damage: damage, // Use the provided damage value
+             isFireHazard: true,
+             size: size // Store size for potential collision optimization
         };
+        
         hazard.mesh.position.copy(position);
-        hazard.mesh.position.y = 0.25; // Place on the ground
+        hazard.mesh.position.y = 0.5; // Raised slightly higher
         hazard.mesh.castShadow = true;
+        
+        // Add particle effect for fire (simple animation)
+        const animate = () => {
+            if (hazard.mesh && hazard.mesh.parent) {
+                // Pulsate the fire
+                const scale = 0.9 + 0.2 * Math.sin(Date.now() * 0.01);
+                hazard.mesh.scale.y = scale;
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+        
         this.scene.add(hazard.mesh);
         this.fireHazards.push(hazard);
     }

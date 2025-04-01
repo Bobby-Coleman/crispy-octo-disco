@@ -43,6 +43,9 @@ class Player {
         // For now, collisions will be checked against camera position or a small sphere around it.
         this.collisionRadius = 0.5; // Radius for collision checks centered on camera base
 
+        this.isInvulnerable = false;
+        this.invulnerabilityDuration = 2000; // 2 seconds in milliseconds
+
         this.updateHealthUI();
     }
 
@@ -193,13 +196,19 @@ class Player {
     }
 
     takeDamage(amount) {
-        if (this.isDead) return;
+        if (this.isInvulnerable) return; // Skip damage if invulnerable
 
         this.health -= amount;
         Utils.playSound('damage');
         this.updateHealthUI();
-
         console.log(`Player took ${amount} damage. Health: ${this.health}`);
+
+        // Start invulnerability period
+        this.isInvulnerable = true;
+        setTimeout(() => {
+            this.isInvulnerable = false;
+            console.log("Player vulnerability restored");
+        }, this.invulnerabilityDuration);
 
         if (this.health <= 0) {
             this.health = 0;
@@ -276,12 +285,14 @@ class Player {
              this.camera.rotation.copy(this.rotation);
 
         } else {
-            // Desktop WASD Movement
-            const forwardDelta = this.moveState.forward - this.moveState.backward;
-            const strafeDelta = this.moveState.right - this.moveState.left;
-             moveDirection.z += forwardDelta;
-             moveDirection.x += strafeDelta;
-             moveDirection.normalize(); // Ensure consistent speed
+            // Desktop WASD Movement - Fixed W/S direction
+            // In THREE.js, negative Z is forward (into the screen)
+            moveDirection.z = -(this.moveState.forward - this.moveState.backward); 
+            moveDirection.x = this.moveState.right - this.moveState.left;
+            
+            if (moveDirection.lengthSq() > 0) {
+                moveDirection.normalize(); // Normalize only if there's input
+            }
         }
 
 
@@ -308,9 +319,41 @@ class Player {
          // Check collision with fire hazards
          const fireHazardCollision = Utils.checkPointCollisionWithArray(playerCenterPos, this.environment.fireHazards);
         if (fireHazardCollision) {
-             // Apply damage periodically or once? Let's do once per collision check frame
-             this.takeDamage(fireHazardCollision.damage * deltaTime * 3); // Damage over time while inside
-             // Don't remove hazard, it persists
+            // Apply flat damage when hitting fire (not scaled by deltaTime)
+            // Apply full 10 damage each time
+            console.log(`Player in fire! Taking ${fireHazardCollision.damage} damage.`);
+            this.takeDamage(fireHazardCollision.damage);
+            
+            // Visual feedback when in fire
+            if (!this.isInvulnerable) {
+                // Show fire warning message
+                const fireWarning = document.getElementById('fire-warning');
+                if (fireWarning) {
+                    fireWarning.style.display = 'block';
+                    // Hide after a short delay
+                    clearTimeout(this.fireWarningTimeout);
+                    this.fireWarningTimeout = setTimeout(() => {
+                        fireWarning.style.display = 'none';
+                    }, 500);
+                }
+                
+                // Flash the screen red briefly for fire damage feedback
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                overlay.style.pointerEvents = 'none';
+                overlay.style.zIndex = '1000';
+                document.body.appendChild(overlay);
+                
+                // Remove after a short time
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                }, 100);
+            }
         }
 
         // Keep player within bounds (simple clamp) - Adjust bounds as needed

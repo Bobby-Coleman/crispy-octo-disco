@@ -118,15 +118,34 @@ const Utils = {
 
      // Check collision between a point and an array of objects with meshes
     checkPointCollisionWithArray(pointVec3, objectArray) {
+        // First check fire hazards - prioritize them
         for (let i = 0; i < objectArray.length; i++) {
             const obj = objectArray[i];
-             if (obj && obj.mesh) {
+            if (obj && obj.mesh && obj.isFireHazard) {
+                const position = obj.mesh.position.clone();
+                const dx = pointVec3.x - position.x;
+                const dz = pointVec3.z - position.z;
+                const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+                const size = obj.size || 1.0; // Default to 1.0 if size not specified
+                
+                // Increase detection radius for better gameplay feel
+                // Check if point is within the fire radius
+                if (horizontalDistance < (size / 1.5)) {
+                    return obj; // Return the fire hazard that was collided with
+                }
+            }
+        }
+        
+        // Then check other objects with box collision
+        for (let i = 0; i < objectArray.length; i++) {
+            const obj = objectArray[i];
+            if (obj && obj.mesh && !obj.isFireHazard) {
                 obj.mesh.updateMatrixWorld();
                 const box = new THREE.Box3().setFromObject(obj.mesh);
                 if (box.containsPoint(pointVec3)) {
                     return obj; // Return the object collided with
                 }
-             }
+            }
         }
         return null; // No collision
     }
