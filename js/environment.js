@@ -195,8 +195,6 @@ class Environment {
             this.door.mesh.visible = true;
             // Portal effect is handled by the animation in setupDoor
         }
-        const victoryMessage = document.getElementById('victory-message');
-        if(victoryMessage) victoryMessage.style.display = 'block';
     }
 
     update(deltaTime) {
@@ -335,16 +333,5 @@ class Environment {
         // Show car crash models
         if (this.carCrash1) this.carCrash1.visible = true;
         if (this.carCrash2) this.carCrash2.visible = true;
-
-        // Update victory message
-        const victoryMessage = document.getElementById('victory-message');
-        if (victoryMessage) {
-            victoryMessage.textContent = "Level 2: Explore the Crash Site";
-            victoryMessage.style.display = 'block';
-            // Hide the message after 3 seconds
-            setTimeout(() => {
-                victoryMessage.style.display = 'none';
-            }, 3000);
-        }
     }
 }
