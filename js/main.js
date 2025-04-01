@@ -9,7 +9,7 @@ function init() {
     console.log('Initializing game...');
     
     // Start background music
-    const bgMusic = new Audio('audio/boss.mp3');
+    const bgMusic = new Audio('audio/boss.wav');
     bgMusic.loop = true;
     bgMusic.volume = 0.5; // Set to 50% volume
     bgMusic.play().catch(error => console.log('Audio autoplay failed:', error));
