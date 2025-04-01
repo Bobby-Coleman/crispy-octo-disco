@@ -6,6 +6,7 @@ class Environment {
         this.playerBullets = [];
         this.demonBullets = [];
         this.fireHazards = [];
+        this.player = null; // Add player reference
 
         this.bulletSpeed = 15; // units per second
         this.bulletLifetime = 3; // seconds
@@ -14,23 +15,35 @@ class Environment {
 
         this.setupDungeon();
         this.setupDoor();
+        
+        // Load car crash models but keep them hidden initially
+        this.loadCarCrashModels();
+    }
+
+    // Add method to set player reference
+    setPlayer(player) {
+        this.player = player;
     }
 
     setupDungeon() {
         const roomSize = 30;
         const wallHeight = 5;
 
-        // Floor
+        // Floor - dark red to match walls and ceiling
         const floorGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
-        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide });
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8B0000, // Dark red color (matching walls)
+            side: THREE.DoubleSide,
+            roughness: 0.8 // Make it slightly less reflective than walls
+        });
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
         floor.rotation.x = -Math.PI / 2; // Rotate to lay flat
         floor.position.y = 0; // Place at ground level
         floor.receiveShadow = true;
         this.scene.add(floor);
 
-        // Walls (simple boxes)
-        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x606060 });
+        // Walls (medium-dark red color)
+        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x8B0000 }); // Dark red color
         const wallThickness = 0.5;
 
         // Wall geometries
@@ -53,7 +66,16 @@ class Environment {
             this.scene.add(wall);
         });
 
-         // Basic Lighting
+        // Ceiling (medium-dark red color, matching walls)
+        const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
+        const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0x8B0000, side: THREE.DoubleSide }); // Dark red color
+        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2; // Rotate to lay flat as ceiling
+        ceiling.position.y = wallHeight; // Place at top of walls
+        ceiling.receiveShadow = true;
+        this.scene.add(ceiling);
+
+        // Basic Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         this.scene.add(ambientLight);
 
@@ -70,13 +92,33 @@ class Environment {
     }
 
     setupDoor() {
-        const doorGeometry = new THREE.BoxGeometry(2, 3, 0.1);
-        const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 }); // Green
+        // Create a larger, more portal-like door
+        const doorGeometry = new THREE.BoxGeometry(3, 4, 0.2);
+        const doorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.7,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.5
+        });
         this.door = {
             mesh: new THREE.Mesh(doorGeometry, doorMaterial)
         };
-        this.door.mesh.position.set(0, 1.5, -14.9); // Positioned at the back wall, initially hidden/closed
-        this.door.mesh.visible = false; // Start hidden
+        // Position the portal in the back area of the red room
+        this.door.mesh.position.set(0, 2, -10); // Centered, floating, back area
+        this.door.mesh.visible = false;
+        
+        // Add a pulsing animation to make it more portal-like
+        const animate = () => {
+            if (this.door.mesh && this.door.mesh.visible) {
+                const pulseScale = 1 + 0.1 * Math.sin(Date.now() * 0.003);
+                this.door.mesh.scale.set(pulseScale, pulseScale, 1);
+                this.door.mesh.material.emissiveIntensity = 0.5 + 0.3 * Math.sin(Date.now() * 0.002);
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+
         this.scene.add(this.door.mesh);
     }
 
@@ -148,11 +190,12 @@ class Environment {
     }
 
     openDoor() {
+        console.log("Opening portal..."); // Debug log
         if (this.door && this.door.mesh) {
             this.door.mesh.visible = true;
-            // Optional: Add animation later (e.g., sliding)
+            // Portal effect is handled by the animation in setupDoor
         }
-         const victoryMessage = document.getElementById('victory-message');
+        const victoryMessage = document.getElementById('victory-message');
         if(victoryMessage) victoryMessage.style.display = 'block';
     }
 
@@ -163,6 +206,23 @@ class Environment {
 
         // Update and remove fire hazards
         this.updateHazards(this.fireHazards, deltaTime);
+
+        // Check if player is touching the portal
+        if (this.door && this.door.mesh && this.door.mesh.visible && this.player) {
+            const playerPos = this.player.getPosition();
+            if (playerPos) {  // Make sure we have a valid position
+                const portalPos = this.door.mesh.position;
+                const dx = playerPos.x - portalPos.x;
+                const dy = playerPos.y - portalPos.y;
+                const dz = playerPos.z - portalPos.z;
+                const distanceToPortal = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                // If player is close enough to the portal, transition to level 2
+                if (distanceToPortal < 2) {
+                    this.transitionToLevel2();
+                }
+            }
+        }
     }
 
     updateProjectiles(bulletArray, deltaTime) {
@@ -217,4 +277,74 @@ class Environment {
              this.fireHazards.splice(index, 1);
          }
      }
+
+    loadCarCrashModels() {
+        const loader = new THREE.GLTFLoader();
+        
+        // Load first car crash model
+        loader.load(
+            'models/car_crash.glb',
+            (gltf) => {
+                console.log('Car crash 1 loaded successfully');
+                this.carCrash1 = gltf.scene;
+                this.carCrash1.position.set(-2, 0, 0); // Slightly left of center
+                this.carCrash1.scale.set(1, 1, 1);
+                this.carCrash1.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+                this.carCrash1.visible = false; // Start hidden
+                this.scene.add(this.carCrash1);
+            },
+            undefined,
+            (error) => console.error('Error loading car crash 1:', error)
+        );
+
+        // Load second car crash model
+        loader.load(
+            'models/car_crash_02.glb',
+            (gltf) => {
+                console.log('Car crash 2 loaded successfully');
+                this.carCrash2 = gltf.scene;
+                this.carCrash2.position.set(2, 0, 0); // Slightly right of center
+                this.carCrash2.scale.set(1, 1, 1);
+                this.carCrash2.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+                this.carCrash2.visible = false; // Start hidden
+                this.scene.add(this.carCrash2);
+            },
+            undefined,
+            (error) => console.error('Error loading car crash 2:', error)
+        );
+    }
+
+    transitionToLevel2() {
+        // Hide the portal
+        this.door.mesh.visible = false;
+
+        // Reset player position to start of room
+        this.player.camera.position.set(0, 1.6, 12);
+        this.player.camera.lookAt(0, 1.6, 0);
+
+        // Show car crash models
+        if (this.carCrash1) this.carCrash1.visible = true;
+        if (this.carCrash2) this.carCrash2.visible = true;
+
+        // Update victory message
+        const victoryMessage = document.getElementById('victory-message');
+        if (victoryMessage) {
+            victoryMessage.textContent = "Level 2: Explore the Crash Site";
+            victoryMessage.style.display = 'block';
+            // Hide the message after 3 seconds
+            setTimeout(() => {
+                victoryMessage.style.display = 'none';
+            }, 3000);
+        }
+    }
 }

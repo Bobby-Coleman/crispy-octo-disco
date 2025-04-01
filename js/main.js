@@ -47,9 +47,10 @@ function init() {
     environment = new Environment(scene);
     const playerStartPos = new THREE.Vector3(0, 1.6, 12); // Start near front wall
     player = new Player(scene, camera, playerStartPos, environment);
+    environment.setPlayer(player);
 
     const demonStartPos = new THREE.Vector3(0, 0, -12); // Start near back wall
-    demon = new Demon(scene, demonStartPos, environment, player); // Pass player ref to demon
+    demon = new Demon(scene, demonStartPos, environment, player);
 
     // Setup Controls based on device
     if (isMobile) {

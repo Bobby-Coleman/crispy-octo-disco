@@ -6,8 +6,8 @@ class Demon {
         this.environment = environment;
         this.player = player; // Reference to player for targeting
 
-        this.health = 100;
-        this.maxHealth = 100;
+        this.health = 20;
+        this.maxHealth = 20;
         this.isDead = false;
         this.model = null; // To hold the loaded GLB model
         this.mixer = null; // Animation mixer
@@ -192,28 +192,30 @@ class Demon {
 
         this.isDead = true;
         this.state = 'DYING';
-        console.log("Demon Died!");
+        console.log("Demon Died! Opening door soon...");
 
         const deathAction = this.playAnimation('death');
 
         // Wait for death animation to finish, then hide model and open door
         if (deathAction) {
             const listener = (event) => {
-                 if (event.action === deathAction) {
+                if (event.action === deathAction) {
                     this.mixer.removeEventListener('finished', listener);
                     if (this.model) {
                         this.scene.remove(this.model); // Remove from scene visually
                         this.model = null; // Clear reference
                     }
+                    console.log("Death animation finished, opening door now...");
                     this.environment.openDoor(); // Signal environment to open the door
                 }
             };
-             this.mixer.addEventListener('finished', listener);
+            this.mixer.addEventListener('finished', listener);
         } else {
             // If no death animation, just hide immediately and open door
-             if (this.model) this.scene.remove(this.model);
-             this.model = null;
-             this.environment.openDoor();
+            if (this.model) this.scene.remove(this.model);
+            this.model = null;
+            console.log("No death animation, opening door immediately...");
+            this.environment.openDoor();
         }
     }
 
@@ -225,32 +227,56 @@ class Demon {
         this.state = 'ATTACKING_SPAWN';
         Utils.playSound('roar');
         
-        // Create multiple random fire hazards across the map (20% coverage)
+        // Create multiple random fire hazards across the map (10% coverage)
         const mapWidth = 40; // Approximate map width
         const mapDepth = 40; // Approximate map depth
         const fireRadius = 2.5; // Size of each fire hazard
         const fireArea = Math.PI * fireRadius * fireRadius;
         const totalMapArea = mapWidth * mapDepth;
         
-        // Calculate how many fires to create to cover ~20% of the map
-        const targetCoverage = 0.2; // 20% coverage
+        // Calculate how many fires to create to cover ~10% of the map
+        const targetCoverage = 0.1; // 10% coverage
         const targetArea = totalMapArea * targetCoverage;
         const numFires = Math.floor(targetArea / fireArea);
         
-        console.log(`Creating ${numFires} fires to cover ~20% of the map`);
+        console.log(`Creating ${numFires} fires to cover ~10% of the map`);
+        
+        // Get player position to avoid spawning fires nearby
+        const playerPos = this.player.getPosition();
+        const safeDistance = 5.0; // Minimum distance from player (in units)
         
         for (let i = 0; i < numFires; i++) {
-            // Generate random position within map bounds
-            const x = (Math.random() * mapWidth) - (mapWidth / 2); // Center map at origin
-            const z = (Math.random() * mapDepth) - (mapDepth / 2);
-            const position = new THREE.Vector3(x, 0, z);
+            let validPosition = false;
+            let position;
+            let attempts = 0;
             
-            // Create fire hazard with 10 damage
-            this.environment.createFireHazard(position, fireRadius, 10);
+            // Try to find a valid position not too close to the player
+            while (!validPosition && attempts < 10) {
+                // Generate random position within map bounds
+                const x = (Math.random() * mapWidth) - (mapWidth / 2); // Center map at origin
+                const z = (Math.random() * mapDepth) - (mapDepth / 2);
+                position = new THREE.Vector3(x, 0, z);
+                
+                // Check distance to player
+                const distanceToPlayer = position.distanceTo(playerPos);
+                
+                // If far enough from player, position is valid
+                if (distanceToPlayer > safeDistance) {
+                    validPosition = true;
+                }
+                
+                attempts++;
+            }
+            
+            // Only create fire if we found a valid position
+            if (validPosition) {
+                // Create fire hazard with 10 damage
+                this.environment.createFireHazard(position, fireRadius, 10);
+            }
         }
         
         this.state = 'WALKING'; // Return to walking state
-        this.playAnimation('walk');
+         this.playAnimation('walk');
     }
 
     shootFireball() {
@@ -358,26 +384,26 @@ class Demon {
             }
         }
 
-        // State-based behavior
-        switch (this.state) {
+         // State-based behavior
+         switch (this.state) {
             case 'IDLE':
             case 'WALKING':
                 // Decide next action and look at player
                 this.decideNextAction();
-                this.lookAtPlayer();
+                 this.lookAtPlayer();
                 break;
-            case 'ATTACKING_FIREBALL':
+             case 'ATTACKING_FIREBALL':
             case 'ATTACKING_OMNI':
-            case 'ATTACKING_SPAWN':
-            case 'HIT':
-                // Actions handled by animation completion or initial trigger
-                // Ensure demon still looks at player during these short actions
-                this.lookAtPlayer();
-                break;
+             case 'ATTACKING_SPAWN':
+             case 'HIT':
+                 // Actions handled by animation completion or initial trigger
+                 // Ensure demon still looks at player during these short actions
+                 this.lookAtPlayer();
+                 break;
         }
     }
 
-    decideNextAction() {
+     decideNextAction() {
         if (this.state === 'DYING') return;
         
         // Reset state to IDLE before deciding new action
