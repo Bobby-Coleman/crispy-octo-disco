@@ -1,0 +1,134 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #000;
+    color: white;
+    font-family: sans-serif;
+}
+
+#game-canvas-container canvas {
+    display: block; /* Prevents scrollbars */
+}
+
+#ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicking through UI */
+    z-index: 10;
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: white;
+    user-select: none;
+}
+
+.health-bar-container {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+#player-health-container {
+    bottom: 20px;
+    left: 20px;
+}
+
+#demon-health-container {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.health-bar {
+    display: inline-block;
+    width: 100px;
+    height: 15px;
+    background-color: #555;
+    border: 1px solid #ccc;
+    margin: 0 10px;
+    position: relative;
+}
+
+.health-bar > div {
+    height: 100%;
+    background-color: red;
+    width: 100%; /* Default full */
+    transition: width 0.2s ease;
+}
+
+#player-health-fill {
+     background-color: green;
+}
+
+#demon-health-fill {
+     background-color: red;
+}
+
+
+#victory-message {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: yellow;
+    text-shadow: 2px 2px 4px #000;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+
+/* --- Mobile Joystick Styling --- */
+#joystick-zone-left,
+#joystick-zone-right {
+    position: absolute;
+    bottom: 15%;
+    width: 100px; /* Adjust size as needed */
+    height: 100px;
+    /* background-color: rgba(128, 128, 128, 0.3); */ /* Optional visual aid */
+    border-radius: 50%;
+    z-index: 5; /* Below UI, above canvas */
+    display: none; /* Hidden by default, shown via JS */
+}
+
+#joystick-zone-left {
+    left: 10%;
+    transform: translateX(-50%);
+}
+
+#joystick-zone-right {
+    right: 10%;
+    transform: translateX(50%);
+}
+
+/* NippleJS internal elements styling (optional, but recommended) */
+.nipple {
+    pointer-events: auto; /* Ensure joystick is interactive */
+    position: relative; /* NippleJS might override this */
+    opacity: 0.5;
+}
+.nipple .front {
+    background-color: grey;
+    opacity: 0.7;
+    width: 50px !important;
+    height: 50px !important;
+}
+.nipple .back {
+    background-color: darkgrey;
+    opacity: 0.5;
+    width: 100px !important;
+    height: 100px !important;
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Dungeon Demon Shooter</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- UI Elements -->
+    <div id="ui-container">
+        <div id="crosshair">+</div>
+        <div class="health-bar-container" id="player-health-container">
+            Player HP: <div class="health-bar" id="player-health-bar"><div id="player-health-fill"></div></div> <span id="player-health-value">100</span>/100
+        </div>
+        <div class="health-bar-container" id="demon-health-container">
+            Demon HP: <div class="health-bar" id="demon-health-bar"><div id="demon-health-fill"></div></div> <span id="demon-health-value">100</span>/100
+        </div>
+        <div id="victory-message" style="display: none;">VICTORY! Door Opened!</div>
+    </div>
+
+    <!-- NippleJS Joystick Containers (Mobile) -->
+    <div id="joystick-zone-left"></div>
+    <div id="joystick-zone-right"></div>
+
+    <!-- Game Canvas -->
+    <div id="game-canvas-container"></div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="libs/nipplejs.min.js"></script>
+
+    <!-- Game Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/environment.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/demon.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
