@@ -196,24 +196,41 @@ class Player {
     }
 
     takeDamage(amount) {
-        if (this.isInvulnerable) return; // Skip damage if invulnerable
+        if (this.isDead || this.isInvulnerable) return;
 
-        this.health -= amount;
-        Utils.playSound('damage');
+        this.health = Math.max(0, this.health - amount);
         this.updateHealthUI();
         console.log(`Player took ${amount} damage. Health: ${this.health}`);
 
-        // Start invulnerability period
+        // Create red flash overlay
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '1000';
+        overlay.style.transition = 'opacity 0.3s ease';
+        document.body.appendChild(overlay);
+
+        // Remove overlay after animation
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(overlay), 300);
+        }, 100);
+
+        if (this.health <= 0) {
+            this.die();
+            return;
+        }
+
+        // Invulnerability period
         this.isInvulnerable = true;
         setTimeout(() => {
             this.isInvulnerable = false;
-            console.log("Player vulnerability restored");
         }, this.invulnerabilityDuration);
-
-        if (this.health <= 0) {
-            this.health = 0;
-            this.die();
-        }
     }
 
     die() {
