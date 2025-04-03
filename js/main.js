@@ -4,16 +4,24 @@ let scene, camera, renderer;
 let player, demon, environment;
 let clock;
 let isMobile = false;
+let bgMusic, satanDialog; // Declare audio variables globally within the script scope
+let audioStarted = false; // Flag to ensure audio plays only once on interaction
 
 function init() {
     console.log('Initializing game...');
     
-    // Start background music
-    const bgMusic = new Audio('audio/boss.wav');
+    // Create Audio objects but don't play yet
+    bgMusic = new Audio('audio/boss.mp3');
     bgMusic.loop = true;
     bgMusic.volume = 0.5; // Set to 50% volume
-    bgMusic.play().catch(error => console.log('Audio autoplay failed:', error));
-    
+
+    satanDialog = new Audio('audio/satan_dialog.mp3');
+    satanDialog.volume = 0.8; // Example volume
+
+    // Add listener for first interaction to start audio
+    document.addEventListener('click', startAudioOnInteraction, { once: true });
+    document.addEventListener('touchstart', startAudioOnInteraction, { once: true }); // For mobile touch
+
     // Basic Setup
     scene = new THREE.Scene();
     if (!scene) {
@@ -79,6 +87,37 @@ function init() {
     // A better approach would use promises or callbacks from the loader
     // For simplicity, we start immediately, but demon logic waits for model load.
     animate();
+}
+
+function startAudioOnInteraction() {
+    if (audioStarted) return; // Prevent multiple triggers
+    console.log('User interaction detected, attempting to play audio...');
+    
+    // Try playing background music
+    const bgPromise = bgMusic.play();
+    if (bgPromise !== undefined) {
+        bgPromise.then(_ => {
+            console.log('Background music started.');
+        }).catch(error => {
+            console.error('Background music playback failed:', error);
+        });
+    }
+
+    // Try playing satan dialog
+    const dialogPromise = satanDialog.play();
+     if (dialogPromise !== undefined) {
+        dialogPromise.then(_ => {
+            console.log('Satan dialog started.');
+        }).catch(error => {
+            console.error('Satan dialog playback failed:', error);
+            // If dialog fails, maybe still try bg music? Or handle differently.
+        });
+    }
+    
+    audioStarted = true; 
+    // Remove listeners explicitly if needed, though { once: true } should handle it
+    document.removeEventListener('click', startAudioOnInteraction);
+    document.removeEventListener('touchstart', startAudioOnInteraction);
 }
 
 function onWindowResize() {
