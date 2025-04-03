@@ -5,6 +5,7 @@ let player, demon, environment;
 let clock;
 let isMobile = false;
 let bgMusic, satanDialog; // Declare audio variables globally within the script scope
+let finalDialog; // Add final dialog audio variable
 let audioStarted = false; // Flag to ensure audio plays only once on interaction
 
 function init() {
@@ -13,10 +14,13 @@ function init() {
     // Create Audio objects but don't play yet
     bgMusic = new Audio('audio/boss.mp3');
     bgMusic.loop = true;
-    bgMusic.volume = 0.2; // Set to 20% volume
+    bgMusic.volume = 0.1; // Set to 20% volume
 
     satanDialog = new Audio('audio/satan_dialog.mp3');
     satanDialog.volume = 0.8; // Example volume
+
+    finalDialog = new Audio('audio/final_dialog.mp3'); // Initialize final dialog
+    finalDialog.volume = 0.8; // Match satan dialog volume
 
     // Add listener for first interaction to start audio
     document.addEventListener('click', startAudioOnInteraction, { once: true });
@@ -59,7 +63,7 @@ function init() {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     // Create Game Components
-    environment = new Environment(scene);
+    environment = new Environment(scene, finalDialog); // Pass final dialog audio
     const playerStartPos = new THREE.Vector3(0, 1.6, 12); // Start near front wall
     player = new Player(scene, camera, playerStartPos, environment);
     environment.setPlayer(player);

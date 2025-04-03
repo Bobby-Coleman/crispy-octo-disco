@@ -1,12 +1,13 @@
 // js/environment.js
 
 class Environment {
-    constructor(scene) {
+    constructor(scene, finalDialogAudio) {
         this.scene = scene;
         this.playerBullets = [];
         this.demonBullets = [];
         this.fireHazards = [];
         this.player = null; // Add player reference
+        this.finalDialog = finalDialogAudio; // Store final dialog audio
 
         this.bulletSpeed = 15; // units per second
         this.bulletLifetime = 3; // seconds
@@ -333,5 +334,12 @@ class Environment {
         // Show car crash models
         if (this.carCrash1) this.carCrash1.visible = true;
         if (this.carCrash2) this.carCrash2.visible = true;
+
+        // Play final dialog after 3 seconds
+        if (this.finalDialog) {
+            setTimeout(() => {
+                this.finalDialog.play();
+            }, 3000); // 3000 milliseconds = 3 seconds
+        }
     }
 }
