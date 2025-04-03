@@ -1,10 +1,12 @@
 // js/player.js
 
 class Player {
-    constructor(scene, camera, initialPos, environment) {
+    constructor(scene, camera, initialPos, environment, bulletAudio, gruntAudio) {
         this.scene = scene;
         this.camera = camera;
         this.environment = environment; // Reference to environment for bullet handling
+        this.bulletAudio = bulletAudio; // Store bullet sound
+        this.gruntAudio = gruntAudio; // Store grunt sound
 
         this.health = 100;
         this.maxHealth = 100;
@@ -181,7 +183,12 @@ class Player {
 
     shoot() {
         if (this.canShoot && !this.isDead) {
-            Utils.playSound('shoot');
+            // Play bullet sound
+            if (this.bulletAudio) {
+                this.bulletAudio.currentTime = 0; // Rewind sound if already playing
+                this.bulletAudio.play();
+            }
+            
             const direction = new THREE.Vector3();
             this.camera.getWorldDirection(direction);
 
@@ -197,6 +204,12 @@ class Player {
 
     takeDamage(amount) {
         if (this.isDead || this.isInvulnerable) return;
+
+        // Play grunt sound
+        if (this.gruntAudio) {
+            this.gruntAudio.currentTime = 0; // Rewind
+            this.gruntAudio.play();
+        }
 
         this.health = Math.max(0, this.health - amount);
         this.updateHealthUI();

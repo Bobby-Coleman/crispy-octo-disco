@@ -6,6 +6,7 @@ let clock;
 let isMobile = false;
 let bgMusic, satanDialog; // Declare audio variables globally within the script scope
 let finalDialog; // Add final dialog audio variable
+let wooshAudio, flamesAudio, playerBulletAudio, playerGruntAudio; // Add new sound effect variables
 let audioStarted = false; // Flag to ensure audio plays only once on interaction
 
 function init() {
@@ -14,13 +15,26 @@ function init() {
     // Create Audio objects but don't play yet
     bgMusic = new Audio('audio/boss.mp3');
     bgMusic.loop = true;
-    bgMusic.volume = 0.1; // Set to 20% volume
+    bgMusic.volume = 0.1; // Set to 10% volume
 
     satanDialog = new Audio('audio/satan_dialog.mp3');
     satanDialog.volume = 0.8; // Example volume
 
     finalDialog = new Audio('audio/final_dialog.mp3'); // Initialize final dialog
     finalDialog.volume = 0.8; // Match satan dialog volume
+
+    // Initialize sound effects
+    wooshAudio = new Audio('audio/woosh.mp3');
+    wooshAudio.volume = 0.3; // Lower volume
+
+    flamesAudio = new Audio('audio/flames.mp3');
+    flamesAudio.volume = 0.6;
+
+    playerBulletAudio = new Audio('audio/bullet.mp3');
+    playerBulletAudio.volume = 0.2; // Lower volume
+
+    playerGruntAudio = new Audio('audio/grunt.mp3');
+    playerGruntAudio.volume = 0.7;
 
     // Add listener for first interaction to start audio
     document.addEventListener('click', startAudioOnInteraction, { once: true });
@@ -63,13 +77,13 @@ function init() {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     // Create Game Components
-    environment = new Environment(scene, finalDialog); // Pass final dialog audio
+    environment = new Environment(scene, finalDialog, flamesAudio); // Pass final dialog and flames audio
     const playerStartPos = new THREE.Vector3(0, 1.6, 12); // Start near front wall
-    player = new Player(scene, camera, playerStartPos, environment);
+    player = new Player(scene, camera, playerStartPos, environment, playerBulletAudio, playerGruntAudio); // Pass bullet and grunt audio
     environment.setPlayer(player);
 
     const demonStartPos = new THREE.Vector3(0, 0, -12); // Start near back wall
-    demon = new Demon(scene, demonStartPos, environment, player);
+    demon = new Demon(scene, demonStartPos, environment, player, wooshAudio); // Pass woosh audio
 
     // Setup Controls based on device
     if (isMobile) {

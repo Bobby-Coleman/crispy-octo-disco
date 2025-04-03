@@ -1,13 +1,14 @@
 // js/environment.js
 
 class Environment {
-    constructor(scene, finalDialogAudio) {
+    constructor(scene, finalDialogAudio, flamesAudio) {
         this.scene = scene;
         this.playerBullets = [];
         this.demonBullets = [];
         this.fireHazards = [];
         this.player = null; // Add player reference
         this.finalDialog = finalDialogAudio; // Store final dialog audio
+        this.flamesAudio = flamesAudio; // Store flames audio
 
         this.bulletSpeed = 15; // units per second
         this.bulletLifetime = 3; // seconds
@@ -153,6 +154,12 @@ class Environment {
     }
 
     createFireHazard(position, size = 1.0, damage = 10) {
+        // Play flames sound
+        if (this.flamesAudio) {
+            this.flamesAudio.currentTime = 0;
+            this.flamesAudio.play();
+        }
+
         // Size parameter controls the width/depth of the fire hazard
         const geometry = new THREE.BoxGeometry(size, 1.0, size); // Increased height for better visibility
         const material = new THREE.MeshStandardMaterial({ 

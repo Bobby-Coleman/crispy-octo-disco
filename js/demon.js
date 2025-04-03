@@ -1,10 +1,11 @@
 // js/demon.js
 
 class Demon {
-    constructor(scene, initialPos, environment, player) {
+    constructor(scene, initialPos, environment, player, wooshAudio) {
         this.scene = scene;
         this.environment = environment;
         this.player = player; // Reference to player for targeting
+        this.wooshAudio = wooshAudio; // Store woosh sound
 
         this.health = 20;
         this.maxHealth = 20;
@@ -283,7 +284,13 @@ class Demon {
         if (this.state === 'DYING') return;
         console.log("Demon shooting fireballs");
         this.state = 'ATTACKING_FIREBALL';
-        Utils.playSound('fireball');
+        // Utils.playSound('fireball'); // Remove old sound call
+        
+        // Play woosh sound
+        if (this.wooshAudio) {
+            this.wooshAudio.currentTime = 0;
+            this.wooshAudio.play();
+        }
 
         this.playAnimation('fireball');
 
@@ -317,7 +324,13 @@ class Demon {
         if (this.state === 'DYING') return;
         console.log("Demon shooting omnidirectional bullets");
         this.state = 'ATTACKING_OMNI';
-        Utils.playSound('fireball');
+        // Utils.playSound('fireball'); // Remove old sound call
+        
+        // Play woosh sound
+        if (this.wooshAudio) {
+            this.wooshAudio.currentTime = 0;
+            this.wooshAudio.play();
+        }
 
         this.playAnimation('fireball');
 
