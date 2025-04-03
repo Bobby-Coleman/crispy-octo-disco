@@ -186,7 +186,7 @@ class Player {
             // Play bullet sound
             if (this.bulletAudio) {
                 this.bulletAudio.currentTime = 0; // Rewind sound if already playing
-                this.bulletAudio.play();
+                this.bulletAudio.play().catch(error => console.error("Error playing player bullet sound:", error));
             }
             
             const direction = new THREE.Vector3();
@@ -208,7 +208,7 @@ class Player {
         // Play grunt sound
         if (this.gruntAudio) {
             this.gruntAudio.currentTime = 0; // Rewind
-            this.gruntAudio.play();
+            this.gruntAudio.play().catch(error => console.error("Error playing player grunt sound:", error));
         }
 
         this.health = Math.max(0, this.health - amount);

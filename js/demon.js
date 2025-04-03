@@ -289,7 +289,7 @@ class Demon {
         // Play woosh sound
         if (this.wooshAudio) {
             this.wooshAudio.currentTime = 0;
-            this.wooshAudio.play();
+            this.wooshAudio.play().catch(error => console.error("Error playing demon woosh sound (fireball):", error));
         }
 
         this.playAnimation('fireball');
@@ -329,7 +329,7 @@ class Demon {
         // Play woosh sound
         if (this.wooshAudio) {
             this.wooshAudio.currentTime = 0;
-            this.wooshAudio.play();
+            this.wooshAudio.play().catch(error => console.error("Error playing demon woosh sound (omni):", error));
         }
 
         this.playAnimation('fireball');

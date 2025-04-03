@@ -157,7 +157,7 @@ class Environment {
         // Play flames sound
         if (this.flamesAudio) {
             this.flamesAudio.currentTime = 0;
-            this.flamesAudio.play();
+            this.flamesAudio.play().catch(error => console.error("Error playing flames sound:", error));
         }
 
         // Size parameter controls the width/depth of the fire hazard
@@ -345,7 +345,7 @@ class Environment {
         // Play final dialog after 3 seconds
         if (this.finalDialog) {
             setTimeout(() => {
-                this.finalDialog.play();
+                this.finalDialog.play().catch(error => console.error("Error playing final dialog sound:", error));
             }, 3000); // 3000 milliseconds = 3 seconds
         }
     }
