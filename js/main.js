@@ -13,7 +13,7 @@ function init() {
     // Create Audio objects but don't play yet
     bgMusic = new Audio('audio/boss.mp3');
     bgMusic.loop = true;
-    bgMusic.volume = 0.5; // Set to 50% volume
+    bgMusic.volume = 0.2; // Set to 20% volume
 
     satanDialog = new Audio('audio/satan_dialog.mp3');
     satanDialog.volume = 0.8; // Example volume

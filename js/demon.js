@@ -44,7 +44,7 @@ class Demon {
                     color: 0xff0000,
                     transparent: true,
                     opacity: 0.3,
-                    visible: true // Make it visible
+                    visible: false // Make it invisible
                 });
                 this.collisionBox = new THREE.Mesh(boxGeometry, boxMaterial);
                 this.model.add(this.collisionBox);
